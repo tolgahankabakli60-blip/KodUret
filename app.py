@@ -183,9 +183,34 @@ def generate_with_gemini(prompt):
         return None, str(e)
 
 def fix_code_with_ai(original_code, error_message, prompt):
-    """Hatali kodu AI ile duzelt"""
-    system_msg = """Sen bir kod duzeltme uzmanisin. Sana hatali kod ve hata mesaji verecegim.
-    GOREVIN: Kodu duzelt ve calisir hale getir.
+    """Hatali kodu AI ile duzelt - Eksik kutuphaneleri tespit et"""
+    
+    # Eksik kutuphane tespiti
+    missing_libs = []
+    if "No module named 'cv2'" in error_message or "cv2" in error_message:
+        missing_libs.append("opencv-python")
+    if "No module named 'pandas'" in error_message:
+        missing_libs.append("pandas")
+    if "No module named 'numpy'" in error_message:
+        missing_libs.append("numpy")
+    if "No module named 'PIL'" in error_message or "Pillow" in error_message:
+        missing_libs.append("Pillow")
+    if "No module named 'matplotlib'" in error_message:
+        missing_libs.append("matplotlib")
+    
+    libs_note = ""
+    if missing_libs:
+        libs_note = f"\n\nNOT: Bu kutuphaneler requirements.txt'de VAR: {', '.join(missing_libs)}. KODU bu kutuphaneleri kullanmadan YENIDEN YAZ. Alternatif standart kutuphaneler kullan (ornegin: cv2 yerine PIL/Pillow kullan)."
+    
+    system_msg = """Sen bir kod duzeltme uzmanisin. 
+    GOREVIN: Hatali kodu analiz et ve calisir hale getir.
+    
+    ONEMLI:
+    - Eger eksik kutuphane hatasi varsa, O kutuphaneyi kullanmadan alternatif cozum uret
+    - Ornek: cv2 yerine PIL (Pillow) kullan
+    - Ornek: ozel kutuphane yerine standart Python kutuphaneleri kullan
+    - Kodun calisir olmasi lazim
+    
     SADECE duzeltilmis kodu ver, aciklama yok!"""
     
     fix_prompt = f"""ORIJINAL ISTEK: {prompt}
@@ -195,8 +220,9 @@ def fix_code_with_ai(original_code, error_message, prompt):
     
     HATA MESAJI:
     {error_message}
+    {libs_note}
     
-    Lutfen kodu duzelt ve calisir hale getir."""
+    Lutfen kodu duzelt ve calisir hale getir. Eger kutuphane eksikse, alternatif standart kutuphane kullan."""
     
     # Once OpenAI dene
     if OPENAI_API_KEY:
